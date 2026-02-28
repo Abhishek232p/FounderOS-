@@ -1,5 +1,9 @@
-// This is a wrapper for AI generation. 
-// For this MVP without a provided OpenAI API key, we will use a mock implementation that returns realistic startup analysis data.
+import OpenAI from "openai";
+
+// If the key is not set, we'll gracefully handle it or just let the SDK throw an error.
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY || "",
+});
 
 export async function validateStartupIdea(input: {
     ideaTitle: string;
@@ -7,84 +11,129 @@ export async function validateStartupIdea(input: {
     targetAudience: string;
     problemStatement: string;
 }) {
-    // Simulate AI latency
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    const prompt = `
+  You are an expert startup advisor and VC. Analyze the following startup idea and return a JSON object with your analysis.
+  
+  Startup Name: ${input.ideaTitle}
+  Description: ${input.ideaDescription}
+  Target Audience: ${input.targetAudience}
+  Problem Statement: ${input.problemStatement}
+  
+  Respond ONLY with a JSON object in this exact format:
+  {
+    "demandScore": 85, // Integer 0-100 indicating market demand
+    "feasibilityScore": 70, // Integer 0-100 indicating technical/operational feasibility
+    "competitionScore": 60, // Integer 0-100 indicating how crowded the market is
+    "recommendations": [
+      "String recommendation 1",
+      "String recommendation 2",
+      "String recommendation 3",
+      "String recommendation 4"
+    ],
+    "riskAnalysis": "A 1-2 sentence summary of the biggest execution risk."
+  }
+  `;
 
-    // Predictably random scores based on input length/content
-    const seed = input.ideaTitle.length + input.ideaDescription.length;
-    const demandScore = 65 + (seed % 30);
-    const feasibilityScore = 55 + (seed % 40);
-    const competitionScore = 40 + (seed % 50);
+    try {
+        const response = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: [{ role: "user", content: prompt }],
+            response_format: { type: "json_object" },
+        });
 
-    return {
-        demandScore,
-        feasibilityScore,
-        competitionScore,
-        recommendations: [
-            `Your idea "${input.ideaTitle}" has strong potential for ${input.targetAudience} but needs tighter positioning.`,
-            "Focus your initial MVP exclusively on the core problem: " + (input.problemStatement.slice(0, 50) + "..."),
-            "The market seems crowded, consider finding a niche segment to dominate first.",
-            "Pricing power will be key—avoid a race to the bottom by emphasizing premium features."
-        ],
-        riskAnalysis: "High execution risk due to generic market positioning. Lower this by doing 20 user interviews before writing code.",
-    };
+        const result = JSON.parse(response.choices[0].message.content || "{}");
+        return result;
+    } catch (error) {
+        console.error("OpenAI Validation Error:", error);
+        throw new Error("Failed to validate idea using AI");
+    }
 }
 
 export async function generateExecutionRoadmap(ideaId: string, ideaDetails: any) {
-    // Simulate AI latency
-    await new Promise(resolve => setTimeout(resolve, 2500));
+    const prompt = `
+  You are an expert startup accelerator director. Create an execution roadmap for this validated startup idea. 
+  
+  Startup Name: ${ideaDetails.ideaTitle}
+  Description: ${ideaDetails.ideaDescription}
+  Target Audience: ${ideaDetails.targetAudience}
+  
+  Respond ONLY with a JSON object containing an array called "roadmap" in this exact format:
+  {
+    "roadmap": [
+      {
+        "phase": "Validation Phase",
+        "tasks": ["Task 1", "Task 2", "Task 3"]
+      },
+      {
+        "phase": "MVP Build Phase",
+        "tasks": ["Task 1", "Task 2", "Task 3"]
+      },
+      {
+        "phase": "Launch Phase",
+        "tasks": ["Task 1", "Task 2", "Task 3"]
+      },
+      {
+        "phase": "Scaling Phase",
+        "tasks": ["Task 1", "Task 2", "Task 3"]
+      }
+    ]
+  }
+  `;
 
-    return [
-        {
-            phase: "Validation Phase",
-            tasks: [
-                "Create a simple landing page using FounderOS tools",
-                "Conduct 15 customer discovery interviews",
-                "Collect $100 in pre-sales to validate willingness to pay"
-            ]
-        },
-        {
-            phase: "MVP Build Phase",
-            tasks: [
-                "Focus only on one core feature that solves the immediate pain point",
-                "Use low-code or a starter template to launch within 14 days",
-                "Implement basic auth and secure Stripe payments"
-            ]
-        },
-        {
-            phase: "Launch Phase",
-            tasks: [
-                "Launch on ProductHunt immediately",
-                "Post in 3 targeted Reddit communities where your audience hangs out",
-                "Reach back out to the 15 people interviewed in phase 1"
-            ]
-        },
-        {
-            phase: "Scaling Phase",
-            tasks: [
-                "Set up an automated cold email sequence",
-                "Start writing SEO content for bottom-of-funnel keywords",
-                "Optimize onboarding flow to increase activation by 20%"
-            ]
-        }
-    ];
+    try {
+        const response = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: [{ role: "user", content: prompt }],
+            response_format: { type: "json_object" },
+        });
+
+        const result = JSON.parse(response.choices[0].message.content || "{}");
+        return result.roadmap || [];
+    } catch (error) {
+        console.error("OpenAI Roadmap Error:", error);
+        throw new Error("Failed to generate roadmap using AI");
+    }
 }
 
 export async function analyzeWebsiteConversion(url: string) {
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    const prompt = `
+  You are an expert conversion rate optimization (CRO) consultant. I am giving you a URL of a startup landing page: ${url}
+  
+  Assume the standard structure of a SaaS landing page for this URL based on its name if you cannot browse it directly.
+  Analyze the URL and provide a detailed JSON response grading the website.
+  
+  Respond ONLY with a JSON object in this exact format:
+  {
+    "conversionScore": 75, // Integer 0-100 indicating conversion readiness
+    "uxQualityScore": 80, // Integer 0-100 indicating UX quality
+    "trustScore": 65, // Integer 0-100 indicating trust signals
+    "speedScore": 90, // Integer 0-100 indicating estimated technical performance
+    "recommendations": [
+      "Actionable recommendation 1",
+      "Actionable recommendation 2",
+      "Actionable recommendation 3",
+      "Actionable recommendation 4"
+    ]
+  }
+  `;
 
-    const seed = url.length;
+    try {
+        const response = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: [{ role: "user", content: prompt }],
+            response_format: { type: "json_object" },
+        });
 
-    return {
-        conversionScore: 40 + (seed % 45),
-        uxQualityScore: 50 + (seed % 35),
-        trustScore: 45 + (seed % 40),
-        speedScore: 70 + (seed % 25),
-        recommendations: [
-            "The headline is generic. Change it from what the product is to the value it provides.",
-            "Call-to-action button color blends in too much. Make it high-contrast.",
-            "Add social proof (testimonials, logos) immediately below the fold.",
-            "Remove navbar links on the landing page to reduce bounce rates."
-        ]
-    };
+        const result = JSON.parse(response.choices[0].message.content || "{}");
+        return {
+            conversionScore: result.conversionScore || 50,
+            uxQualityScore: result.uxQualityScore || 50,
+            trustScore: result.trustScore || 50,
+            speedScore: result.speedScore || 50,
+            recommendations: result.recommendations || ["Could not generate detailed recommendations. Please try again."]
+        };
+    } catch (error) {
+        console.error("OpenAI Website Analysis Error:", error);
+        throw new Error("Failed to analyze website using AI");
+    }
 }
