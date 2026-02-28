@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id               String   @id @default(cuid())
+  name             String?
+  email            String?  @unique
+  passwordHash     String?
+  subscriptionPlan String   @default("free") // "free" or "pro"
+  createdAt        DateTime @default(now())
+
+  ideas           Idea[]
+  reports         WebsiteReport[]
+  subscriptions   Subscription[]
+}
+
+model Idea {
+  id               String   @id @default(cuid())
+  userId           String
+  ideaTitle        String
+  ideaDescription  String
+  targetAudience   String
+  problemStatement String
+  ideaScore        Int?
+  feasibilityScore Int?
+  competitionScore Int?
+  recommendations  String?
+  roadmap          String?
+  createdAt        DateTime @default(now())
+
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model WebsiteReport {
+  id               String   @id @default(cuid())
+  userId           String
+  websiteUrl       String
+  conversionScore  Int?
+  uxScore          Int?
+  trustScore       Int?
+  speedScore       Int?
+  recommendations  String?
+  createdAt        DateTime @default(now())
+
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Subscription {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  stripeCustomerId     String?  @unique
+  stripeSubscriptionId String?  @unique
+  planType             String   @default("free")
+  status               String   @default("active")
+  createdAt            DateTime @default(now())
+
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
